@@ -18,6 +18,7 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(), // Replit user ID (string)
   email: varchar("email").unique(),
+  name: text("name"), // Legacy field for compatibility
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
