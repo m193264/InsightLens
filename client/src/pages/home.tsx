@@ -91,11 +91,13 @@ export default function Home() {
             Get honest, anonymous feedback from people who know you best. AI analyzes the patterns to reveal your strengths, blind spots, and limiting beliefs.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/onboarding">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg font-semibold">
-                Start Your 360° Analysis
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg font-semibold"
+              onClick={() => window.location.href = '/api/login'}
+            >
+              Get Started
+            </Button>
             <Button variant="ghost" className="text-neutral-500 hover:text-neutral-900 flex items-center space-x-2">
               <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-primary"></div>

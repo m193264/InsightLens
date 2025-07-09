@@ -5,18 +5,36 @@ import { insertUserSchema, insertSurveySchema, insertInvitationSchema, insertRes
 import { generateReport } from "./services/openai";
 import { sendInvitationEmail, sendReminderEmail } from "./services/email";
 import { generatePDFReport } from "./services/pdf";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // User routes
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        return res.json(existingUser);
+      if (userData.email) {
+        const existingUser = await storage.getUserByEmail(userData.email);
+        if (existingUser) {
+          return res.json(existingUser);
+        }
       }
       
       const user = await storage.createUser(userData);
@@ -28,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const user = await storage.getUser(id);
       
       if (!user) {
@@ -78,9 +96,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:userId/surveys", async (req, res) => {
+  app.get("/api/users/:userId/surveys", isAuthenticated, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const surveys = await storage.getUserSurveys(userId);
       res.json(surveys);
     } catch (error: any) {
@@ -125,7 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const invitation of survey.invitations) {
         if (invitation.status === "pending") {
-          await sendInvitationEmail(invitation, user.name);
+          const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User';
+      await sendInvitationEmail(invitation, userName);
           await storage.updateInvitation(invitation.id, {
             status: "pending",
             sentAt: new Date(),
@@ -158,7 +177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      await sendReminderEmail(invitation, user.name);
+      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User';
+      await sendReminderEmail(invitation, userName);
       
       res.json({ message: "Reminder sent successfully" });
     } catch (error: any) {
@@ -193,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: survey.title,
           focusAreas: survey.focusAreas,
         },
-        userName: user.name,
+        userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User',
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -272,7 +292,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate AI report
-      const reportData = await generateReport(survey, responses, user.name);
+      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User';
+      const reportData = await generateReport(survey, responses, userName);
       
       // Update survey with report data
       await storage.updateSurvey(id, {
@@ -301,10 +322,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const pdfBuffer = await generatePDFReport(survey.reportData, user.name);
+      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User';
+      const pdfBuffer = await generatePDFReport(survey.reportData, userName);
       
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="360-insight-report-${user.name.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="360-insight-report-${userName.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
       res.send(pdfBuffer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

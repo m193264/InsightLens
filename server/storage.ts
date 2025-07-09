@@ -1,42 +1,60 @@
-import { users, surveys, invitations, responses, type User, type InsertUser, type Survey, type InsertSurvey, type Invitation, type InsertInvitation, type Response, type InsertResponse } from "@shared/schema";
+import {
+  users,
+  surveys,
+  invitations,
+  responses,
+  type User,
+  type InsertUser,
+  type UpsertUser,
+  type Survey,
+  type InsertSurvey,
+  type Invitation,
+  type InsertInvitation,
+  type Response,
+  type InsertResponse,
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
+// Interface for storage operations
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
+  // User operations (for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
-  // Survey methods
+  // Survey operations
   getSurvey(id: number): Promise<Survey | undefined>;
   getSurveyWithInvitations(id: number): Promise<(Survey & { invitations: Invitation[] }) | undefined>;
-  getUserSurveys(userId: number): Promise<Survey[]>;
+  getUserSurveys(userId: string): Promise<Survey[]>;
   createSurvey(survey: InsertSurvey): Promise<Survey>;
   updateSurvey(id: number, updates: Partial<Survey>): Promise<Survey>;
   
-  // Invitation methods
+  // Invitation operations
   getInvitation(id: number): Promise<Invitation | undefined>;
   getInvitationByToken(token: string): Promise<Invitation | undefined>;
   getSurveyInvitations(surveyId: number): Promise<Invitation[]>;
   createInvitation(invitation: InsertInvitation): Promise<Invitation>;
   updateInvitation(id: number, updates: Partial<Invitation>): Promise<Invitation>;
   
-  // Response methods
+  // Response operations
   getInvitationResponses(invitationId: number): Promise<Response[]>;
   getSurveyResponses(surveyId: number): Promise<Response[]>;
   createResponse(response: InsertResponse): Promise<Response>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -47,9 +65,25 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // Survey operations
   async getSurvey(id: number): Promise<Survey | undefined> {
     const [survey] = await db.select().from(surveys).where(eq(surveys.id, id));
-    return survey || undefined;
+    return survey;
   }
 
   async getSurveyWithInvitations(id: number): Promise<(Survey & { invitations: Invitation[] }) | undefined> {
@@ -60,7 +94,7 @@ export class DatabaseStorage implements IStorage {
     return { ...survey, invitations: surveyInvitations };
   }
 
-  async getUserSurveys(userId: number): Promise<Survey[]> {
+  async getUserSurveys(userId: string): Promise<Survey[]> {
     return await db
       .select()
       .from(surveys)
@@ -85,14 +119,15 @@ export class DatabaseStorage implements IStorage {
     return survey;
   }
 
+  // Invitation operations
   async getInvitation(id: number): Promise<Invitation | undefined> {
     const [invitation] = await db.select().from(invitations).where(eq(invitations.id, id));
-    return invitation || undefined;
+    return invitation;
   }
 
   async getInvitationByToken(token: string): Promise<Invitation | undefined> {
     const [invitation] = await db.select().from(invitations).where(eq(invitations.token, token));
-    return invitation || undefined;
+    return invitation;
   }
 
   async getSurveyInvitations(surveyId: number): Promise<Invitation[]> {
@@ -120,6 +155,7 @@ export class DatabaseStorage implements IStorage {
     return invitation;
   }
 
+  // Response operations
   async getInvitationResponses(invitationId: number): Promise<Response[]> {
     return await db
       .select()
