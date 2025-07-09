@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import ProgressIndicator from "@/components/progress-indicator";
 import MentorSelection from "@/components/mentor-selection";
@@ -69,7 +68,11 @@ const selfAssessmentQuestions = [
   }
 ];
 
-// Form schemas (removed user schema since we use auth)
+// Form schemas
+const userSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address")
+});
 
 const focusAreasSchema = z.object({
   focusAreas: z.array(z.string()).min(1, "Please select at least one focus area")
@@ -103,21 +106,12 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, isLoading } = useAuth();
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-    }
-  }, [user, isLoading, toast]);
+  // Step 1: User info form
+  const userForm = useForm({
+    resolver: zodResolver(userSchema),
+    defaultValues: { name: "", email: "" }
+  });
 
   // Step 2: Focus areas form  
   const focusForm = useForm({
@@ -154,15 +148,30 @@ export default function Onboarding() {
     }
   });
 
-  // Mutations for creating survey and invitations
+  // Mutations
+  const createUserMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/users", data),
+    onSuccess: async (response) => {
+      const user = await response.json();
+      setUserData(prev => ({ ...prev, userId: user.id }));
+      setCurrentStep(2);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create user account",
+        variant: "destructive"
+      });
+    }
+  });
 
   const createSurveyMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/surveys", data),
     onSuccess: async (response) => {
       const survey = await response.json();
       setUserData(prev => ({ ...prev, surveyId: survey.id }));
-      queryClient.invalidateQueries({ queryKey: ["/api/surveys"] });
-      setCurrentStep(4); // Move to final step to add contacts
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userData.userId, "surveys"] });
+      setLocation(`/dashboard/${survey.id}`);
     },
     onError: () => {
       toast({
@@ -194,37 +203,48 @@ export default function Onboarding() {
     }
   });
 
+  const handleUserSubmit = userForm.handleSubmit((data) => {
+    setUserData(prev => ({ ...prev, ...data }));
+    createUserMutation.mutate(data);
+  });
+
   const handleFocusSubmit = focusForm.handleSubmit((data) => {
     setUserData(prev => ({ ...prev, ...data }));
-    setCurrentStep(2);
+    setCurrentStep(3);
   });
 
   const handleAssessmentSubmit = assessmentForm.handleSubmit((data) => {
     setUserData(prev => ({ ...prev, selfAssessment: data }));
-    setCurrentStep(3);
+    setCurrentStep(4);
   });
 
   const handleMentorSubmit = mentorForm.handleSubmit((data) => {
     setUserData(prev => ({ ...prev, ...data }));
-    // Create survey after mentor selection
-    const surveyData = {
-      title: `${user?.firstName || user?.email || 'User'}'s 360° Feedback Survey`,
-      focusAreas: userData.focusAreas,
-      aiMentor: data.aiMentor,
-      selfAssessment: userData.selfAssessment,
-      status: "setup"
-    };
-    createSurveyMutation.mutate(surveyData);
+    setCurrentStep(5);
   });
 
   const handleContactsSubmit = contactsForm.handleSubmit((data) => {
-    // Create invitations for the existing survey
-    if (userData.surveyId) {
-      createInvitationsMutation.mutate({
-        surveyId: userData.surveyId,
-        contacts: data.contacts
-      });
-    }
+    // Create survey first
+    const surveyData = {
+      userId: userData.userId,
+      title: `${userData.name}'s 360° Feedback Survey`,
+      focusAreas: userData.focusAreas,
+      aiMentor: userData.aiMentor,
+      selfAssessment: userData.selfAssessment,
+      status: "setup"
+    };
+
+    createSurveyMutation.mutate(surveyData);
+    
+    // Then create invitations
+    setTimeout(() => {
+      if (userData.surveyId) {
+        createInvitationsMutation.mutate({
+          surveyId: userData.surveyId,
+          contacts: data.contacts
+        });
+      }
+    }, 1000);
   });
 
   const addContact = () => {
@@ -262,6 +282,58 @@ export default function Onboarding() {
 
         <Card className="max-w-2xl mx-auto">
           {currentStep === 1 && (
+            <>
+              <CardHeader>
+                <CardTitle>Let's start with your information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...userForm}>
+                  <form onSubmit={handleUserSubmit} className="space-y-6">
+                    <FormField
+                      control={userForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Your Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your full name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={userForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your email" type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex justify-end">
+                      <Button 
+                        type="submit" 
+                        disabled={createUserMutation.isPending}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Continue
+                        <ArrowRight className="ml-2 w-4 h-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </>
+          )}
+
+          {currentStep === 2 && (
             <>
               <CardHeader>
                 <CardTitle>Select Your Insight Areas</CardTitle>
@@ -329,7 +401,7 @@ export default function Onboarding() {
             </>
           )}
 
-          {currentStep === 2 && (
+          {currentStep === 3 && (
             <>
               <CardHeader>
                 <CardTitle>Quick Self-Assessment</CardTitle>
@@ -393,7 +465,7 @@ export default function Onboarding() {
             </>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
             <>
               <CardHeader>
                 <CardTitle>Choose Your AI Mentor</CardTitle>
@@ -431,7 +503,7 @@ export default function Onboarding() {
             </>
           )}
 
-          {currentStep === 4 && (
+          {currentStep === 5 && (
             <>
               <CardHeader>
                 <CardTitle>Invite Your Circle</CardTitle>
