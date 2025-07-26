@@ -8,7 +8,7 @@ const mentors = [
     id: "MarcusAI",
     name: "MarcusAI",
     description: "Stoic wisdom & leadership insights",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"
+    image: "https://images.unsplash.com/photo-CTNU0RtE1no?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"
   },
   {
     id: "MayaAI", 
