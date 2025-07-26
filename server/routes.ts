@@ -167,26 +167,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (invitation.status === "pending") {
           console.log(`[email] Sending email to ${invitation.email} (${invitation.name})`);
           
-          // Try SendGrid first, fall back to Nodemailer
+          // Use Gmail/Nodemailer directly (SendGrid account under review)
           let emailSuccess = false;
           try {
-            emailSuccess = await sendInvitationEmail(invitation, user.name);
+            emailSuccess = await sendInvitationEmailNodemailer(invitation, user.name);
             if (emailSuccess) {
-              console.log(`[email] SendGrid email sent successfully to ${invitation.email}`);
+              console.log(`[email] Gmail email sent successfully to ${invitation.email}`);
             }
-          } catch (sendgridError) {
-            console.log(`[email] SendGrid failed for ${invitation.email}, trying Nodemailer...`);
-            try {
-              emailSuccess = await sendInvitationEmailNodemailer(invitation, user.name);
-              if (emailSuccess) {
-                console.log(`[email] Nodemailer email sent successfully to ${invitation.email}`);
-              }
-            } catch (nodemailerError) {
-              console.error(`[email] Both email providers failed for ${invitation.email}:`, {
-                sendgrid: sendgridError.message || sendgridError,
-                nodemailer: nodemailerError.message || nodemailerError
-              });
-            }
+          } catch (emailError) {
+            console.error(`[email] Gmail email failed for ${invitation.email}:`, emailError.message || emailError);
           }
           
           if (emailSuccess) {
@@ -228,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      await sendReminderEmail(invitation, user.name);
+      await sendReminderEmailNodemailer(invitation, user.name);
       
       res.json({ message: "Reminder sent successfully" });
     } catch (error: any) {
