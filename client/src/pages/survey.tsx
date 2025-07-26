@@ -153,7 +153,8 @@ export default function Survey() {
     defaultValues: {
       answer: "",
       example: ""
-    }
+    },
+    mode: "onChange"
   });
 
   const saveResponseMutation = useMutation({
@@ -251,7 +252,10 @@ export default function Survey() {
     const formData = form.getValues();
     const question = allQuestions[currentQuestion];
     
-    if (!question.optional && !formData.answer) {
+    // Get the correct field value based on question type
+    const fieldValue = question.type === "textarea" ? formData.example : formData.answer;
+    
+    if (!question.optional && !fieldValue) {
       toast({
         title: "Please provide an answer",
         description: "This question is required",
@@ -263,12 +267,16 @@ export default function Survey() {
     // Save response
     await saveResponseMutation.mutateAsync({
       questionId: question.id,
-      answer: question.type === "textarea" ? formData.example : formData.answer
+      answer: fieldValue
     });
 
     if (currentQuestion < totalQuestions - 1) {
       setCurrentQuestion(currentQuestion + 1);
-      form.reset();
+      // Reset form values for next question
+      form.reset({
+        answer: "",
+        example: ""
+      });
     } else {
       // Complete survey
       completeSurveyMutation.mutate();
@@ -352,6 +360,8 @@ export default function Survey() {
                           <FormControl>
                             <Textarea
                               {...field}
+                              value={field.value || ""}
+                              onChange={field.onChange}
                               rows={3}
                               placeholder="Describe a situation where you observed this behavior..."
                               className="resize-none"
