@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema, insertSurveySchema, insertInvitationSchema, insertResponseSchema } from "@shared/schema";
 import { generateReport } from "./services/openai";
 import { sendInvitationEmail, sendReminderEmail } from "./services/email";
+import { sendInvitationEmailNodemailer, sendReminderEmailNodemailer } from "./services/email-nodemailer";
 import { generatePDFReport } from "./services/pdf";
 import { z } from "zod";
 
@@ -165,14 +166,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const invitation of survey.invitations) {
         if (invitation.status === "pending") {
           console.log(`[email] Sending email to ${invitation.email} (${invitation.name})`);
-          const emailSuccess = await sendInvitationEmail(invitation, user.name);
+          
+          // Try SendGrid first, fall back to Nodemailer
+          let emailSuccess = false;
+          try {
+            emailSuccess = await sendInvitationEmail(invitation, user.name);
+            if (emailSuccess) {
+              console.log(`[email] SendGrid email sent successfully to ${invitation.email}`);
+            }
+          } catch (sendgridError) {
+            console.log(`[email] SendGrid failed for ${invitation.email}, trying Nodemailer...`);
+            try {
+              emailSuccess = await sendInvitationEmailNodemailer(invitation, user.name);
+              if (emailSuccess) {
+                console.log(`[email] Nodemailer email sent successfully to ${invitation.email}`);
+              }
+            } catch (nodemailerError) {
+              console.error(`[email] Both email providers failed for ${invitation.email}:`, {
+                sendgrid: sendgridError.message || sendgridError,
+                nodemailer: nodemailerError.message || nodemailerError
+              });
+            }
+          }
+          
           if (emailSuccess) {
             await storage.updateInvitation(invitation.id, {
               status: "pending",
               sentAt: new Date(),
             });
             emailsSent++;
-            console.log(`[email] Email sent successfully to ${invitation.email}`);
           } else {
             console.error(`[email] Failed to send email to ${invitation.email}`);
           }
