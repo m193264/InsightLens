@@ -3,8 +3,13 @@ import { Invitation } from '@shared/schema';
 
 const mailService = new MailService();
 
-if (process.env.SENDGRID_API_KEY) {
+console.log(`[email-service] Initializing SendGrid with API key: ${process.env.SENDGRID_API_KEY ? 'PRESENT (length: ' + process.env.SENDGRID_API_KEY.length + ')' : 'MISSING'}`);
+
+if (!process.env.SENDGRID_API_KEY) {
+  console.error('[email-service] CRITICAL: SENDGRID_API_KEY environment variable is missing');
+} else {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('[email-service] SendGrid API key configured successfully');
 }
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@insightengine.com';
@@ -95,13 +100,17 @@ export async function sendInvitationEmail(
 
     console.log(`[email-service] Sending email with subject: "360° Feedback Request from ${userName}"`);
     
-    await mailService.send({
+    const emailData = {
       to: invitation.email,
       from: FROM_EMAIL,
       subject: `360° Feedback Request from ${userName}`,
       text,
       html,
-    });
+    };
+    console.log(`[email-service] Email payload:`, JSON.stringify(emailData, null, 2));
+    
+    const response = await mailService.send(emailData);
+    console.log(`[email-service] SendGrid response:`, response);
 
     console.log(`[email-service] Email sent successfully to ${invitation.email}`);
     return true;
