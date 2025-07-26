@@ -142,6 +142,7 @@ export default function Survey() {
   const token = params.token || "";
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [textareaValue, setTextareaValue] = useState("");
   const { toast } = useToast();
 
   const { data: surveyData, isLoading } = useQuery({
@@ -253,7 +254,7 @@ export default function Survey() {
     const question = allQuestions[currentQuestion];
     
     // Get the correct field value based on question type
-    const fieldValue = question.type === "textarea" ? formData.example : formData.answer;
+    const fieldValue = question.type === "textarea" ? textareaValue : formData.answer;
     
     if (!question.optional && !fieldValue) {
       toast({
@@ -277,6 +278,7 @@ export default function Survey() {
         answer: "",
         example: ""
       });
+      setTextareaValue("");
     } else {
       // Complete survey
       completeSurveyMutation.mutate();
@@ -352,25 +354,15 @@ export default function Survey() {
                       )}
                     />
                   ) : (
-                    <FormField
-                      control={form.control}
-                      name="example"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea
-                              {...field}
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              rows={3}
-                              placeholder="Describe a situation where you observed this behavior..."
-                              className="resize-none"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Describe a situation where you observed this behavior..."
+                        value={textareaValue}
+                        onChange={(e) => setTextareaValue(e.target.value)}
+                        rows={3}
+                        className="resize-none"
+                      />
+                    </div>
                   )}
                 </div>
 
