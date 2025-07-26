@@ -112,6 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/surveys/:surveyId/send-invitations", async (req, res) => {
     try {
       const surveyId = parseInt(req.params.surveyId);
+      console.log(`[email] Sending invitations for survey ${surveyId}`);
+      
       const survey = await storage.getSurveyWithInvitations(surveyId);
       
       if (!survey) {
@@ -123,18 +125,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log(`[email] Found ${survey.invitations.length} invitations for user ${user.name}`);
+
+      let emailsSent = 0;
       for (const invitation of survey.invitations) {
         if (invitation.status === "pending") {
-          await sendInvitationEmail(invitation, user.name);
-          await storage.updateInvitation(invitation.id, {
-            status: "pending",
-            sentAt: new Date(),
-          });
+          console.log(`[email] Sending email to ${invitation.email} (${invitation.name})`);
+          const emailSuccess = await sendInvitationEmail(invitation, user.name);
+          if (emailSuccess) {
+            await storage.updateInvitation(invitation.id, {
+              status: "pending",
+              sentAt: new Date(),
+            });
+            emailsSent++;
+            console.log(`[email] Email sent successfully to ${invitation.email}`);
+          } else {
+            console.error(`[email] Failed to send email to ${invitation.email}`);
+          }
         }
       }
       
-      res.json({ message: "Invitations sent successfully" });
+      console.log(`[email] Total emails sent: ${emailsSent}`);
+      res.json({ message: `${emailsSent} invitations sent successfully` });
     } catch (error: any) {
+      console.error('[email] Error sending invitations:', error);
       res.status(500).json({ message: error.message });
     }
   });

@@ -15,6 +15,11 @@ export async function sendInvitationEmail(
   userName: string
 ): Promise<boolean> {
   try {
+    console.log(`[email-service] Attempting to send email to ${invitation.email}`);
+    console.log(`[email-service] FROM_EMAIL: ${FROM_EMAIL}`);
+    console.log(`[email-service] BASE_URL: ${BASE_URL}`);
+    console.log(`[email-service] SendGrid API Key configured: ${!!process.env.SENDGRID_API_KEY}`);
+    
     const surveyUrl = `${BASE_URL}/survey/${invitation.token}`;
     
     const html = `
@@ -88,6 +93,8 @@ export async function sendInvitationEmail(
       Thank you for your honest feedback!
     `;
 
+    console.log(`[email-service] Sending email with subject: "360° Feedback Request from ${userName}"`);
+    
     await mailService.send({
       to: invitation.email,
       from: FROM_EMAIL,
@@ -96,9 +103,10 @@ export async function sendInvitationEmail(
       html,
     });
 
+    console.log(`[email-service] Email sent successfully to ${invitation.email}`);
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('[email-service] SendGrid email error:', error);
     return false;
   }
 }
