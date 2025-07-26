@@ -261,9 +261,14 @@ export default function Onboarding() {
       // Update user data with survey ID
       setUserData(prev => ({ ...prev, surveyId: createdSurvey.id }));
       
-      // Create invitations
+      // Create invitations - add surveyId to each contact
       console.log('Now creating invitations for survey ID:', createdSurvey.id);
-      await apiRequest("POST", `/api/surveys/${createdSurvey.id}/invitations`, contactsData);
+      const invitationsWithSurveyId = contactsData.map(contact => ({
+        ...contact,
+        surveyId: createdSurvey.id
+      }));
+      console.log('Sending invitations data:', invitationsWithSurveyId);
+      await apiRequest("POST", `/api/surveys/${createdSurvey.id}/invitations`, invitationsWithSurveyId);
       console.log('Invitations created, now sending emails...');
       
       // Send invitations

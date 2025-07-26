@@ -85,7 +85,6 @@ export const insertSurveySchema = createInsertSchema(surveys).omit({
 
 export const insertInvitationSchema = createInsertSchema(invitations).omit({
   id: true,
-  surveyId: true,  // Backend injects this from URL parameter
   token: true,
   sentAt: true,
   completedAt: true,
