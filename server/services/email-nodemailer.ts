@@ -2,7 +2,8 @@ import nodemailer from 'nodemailer';
 import { Invitation } from '@shared/schema';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@insightengine.com';
+// For Gmail SMTP, the from address must match the authenticated account
+const FROM_EMAIL = process.env.GMAIL_USER || 'yogrrtdev@gmail.com';
 
 // Create Gmail SMTP transporter
 const transporter = nodemailer.createTransport({
