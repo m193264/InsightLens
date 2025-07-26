@@ -4,6 +4,13 @@
 
 InsightEngine is a modern web application that provides 360-degree feedback insights through AI-powered analysis. The platform allows users to collect anonymous feedback from their circle of colleagues, friends, and mentors, then generates comprehensive reports analyzed by AI mentors with different perspectives and wisdom styles.
 
+## Recent Changes
+
+### July 26, 2025
+- **Self-Assessment Enhancement**: Completely redesigned self-assessment with 20 comprehensive questions (10 insight-generating open-text questions + 10 personality type scale questions) for richer AI analysis
+- **Survey Text Input Bug Fix**: Resolved critical issue where optional textarea fields weren't displaying typed text - replaced complex react-hook-form binding with direct state management for improved reliability
+- **Email System**: Currently using Gmail/Nodemailer exclusively while SendGrid account is under review
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
