@@ -249,14 +249,22 @@ export default function Onboarding() {
     };
 
     console.log('Creating survey and then invitations...');
+    console.log('Survey data:', surveyData);
+    console.log('Contacts data:', contactsData);
+    
     createSurveyMutation.mutate(surveyData, {
       onSuccess: (createdSurvey) => {
-        console.log('Survey created with ID:', createdSurvey.id);
+        console.log('Survey created successfully:', createdSurvey);
+        console.log('Now creating invitations for survey ID:', createdSurvey.id);
+        
         // Now create invitations with the actual survey ID
         createInvitationsMutation.mutate({
           surveyId: createdSurvey.id,
           contacts: contactsData
         });
+      },
+      onError: (error) => {
+        console.error('Survey creation failed:', error);
       }
     });
   });
