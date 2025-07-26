@@ -171,7 +171,7 @@ export default function Onboarding() {
       const survey = await response.json();
       setUserData(prev => ({ ...prev, surveyId: survey.id }));
       queryClient.invalidateQueries({ queryKey: ["/api/users", userData.userId, "surveys"] });
-      setLocation(`/dashboard/${survey.id}`);
+      // Don't redirect here - let the handleContactsSubmit manage the flow
     },
     onError: () => {
       toast({
@@ -234,7 +234,7 @@ export default function Onboarding() {
     setCurrentStep(5);
   });
 
-  const handleContactsSubmit = contactsForm.handleSubmit((data) => {
+  const handleContactsSubmit = contactsForm.handleSubmit(async (data) => {
     // Store contacts data for later use
     const contactsData = data.contacts;
     
@@ -252,21 +252,39 @@ export default function Onboarding() {
     console.log('Survey data:', surveyData);
     console.log('Contacts data:', contactsData);
     
-    createSurveyMutation.mutate(surveyData, {
-      onSuccess: (createdSurvey) => {
-        console.log('Survey created successfully:', createdSurvey);
-        console.log('Now creating invitations for survey ID:', createdSurvey.id);
-        
-        // Now create invitations with the actual survey ID
-        createInvitationsMutation.mutate({
-          surveyId: createdSurvey.id,
-          contacts: contactsData
-        });
-      },
-      onError: (error) => {
-        console.error('Survey creation failed:', error);
-      }
-    });
+    try {
+      // Create survey and wait for response
+      const surveyResponse = await apiRequest("POST", "/api/surveys", surveyData);
+      const createdSurvey = await surveyResponse.json();
+      console.log('Survey created successfully:', createdSurvey);
+      
+      // Update user data with survey ID
+      setUserData(prev => ({ ...prev, surveyId: createdSurvey.id }));
+      
+      // Create invitations
+      console.log('Now creating invitations for survey ID:', createdSurvey.id);
+      await apiRequest("POST", `/api/surveys/${createdSurvey.id}/invitations`, contactsData);
+      console.log('Invitations created, now sending emails...');
+      
+      // Send invitations
+      await apiRequest("POST", `/api/surveys/${createdSurvey.id}/send-invitations`);
+      
+      toast({
+        title: "Success!",
+        description: "Survey created and invitations sent!"
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userData.userId, "surveys"] });
+      setLocation(`/dashboard/${createdSurvey.id}`);
+      
+    } catch (error) {
+      console.error('Error in survey/invitation flow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create survey or send invitations",
+        variant: "destructive"
+      });
+    }
   });
 
   const addContact = () => {
