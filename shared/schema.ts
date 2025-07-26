@@ -96,6 +96,33 @@ export const insertResponseSchema = createInsertSchema(responses).omit({
   createdAt: true,
 });
 
+// Self Assessment Schema
+export const selfAssessmentSchema = z.object({
+  // Insight-Generating Questions (open text)
+  problemsSolving: z.string().optional(),
+  flowState: z.string().optional(),
+  freeDay: z.string().optional(),
+  decisionMaking: z.string().optional(),
+  environments: z.string().optional(),
+  feedbackStyle: z.string().optional(),
+  motivation: z.string().optional(),
+  roomNoticing: z.string().optional(),
+  timeOrientation: z.string().optional(),
+  stressBehavior: z.string().optional(),
+  
+  // Personality Type Questions (5-point scale)
+  energyFromPeople: z.string().optional(), // Strongly disagree → Strongly agree
+  preferInstructions: z.string().optional(),
+  factsOverIntuition: z.string().optional(),
+  brainstormingVsRoutines: z.string().optional(),
+  openOptions: z.string().optional(),
+  noticeDetails: z.string().optional(),
+  quietTimeRecharge: z.string().optional(),
+  structuredEnvironments: z.string().optional(),
+  empathizeEasily: z.string().optional(),
+  logicalOverEmotional: z.string().optional(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -105,3 +132,4 @@ export type Invitation = typeof invitations.$inferSelect;
 export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
 export type Response = typeof responses.$inferSelect;
 export type InsertResponse = z.infer<typeof insertResponseSchema>;
+export type SelfAssessment = z.infer<typeof selfAssessmentSchema>;

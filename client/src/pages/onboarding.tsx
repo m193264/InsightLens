@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ProgressIndicator from "@/components/progress-indicator";
 import MentorSelection from "@/components/mentor-selection";
 import Header from "@/components/header";
+import { selfAssessmentSchema } from "@shared/schema";
 import { ArrowLeft, ArrowRight, Shield } from "lucide-react";
 
 const steps = [
@@ -36,37 +37,33 @@ const focusAreas = [
   { id: "character", label: "Character & Values", description: "Your core principles and integrity" }
 ];
 
-const selfAssessmentQuestions = [
-  {
-    id: "confidence_level",
-    question: "How confident are you in your current leadership abilities?",
-    type: "radio",
-    options: ["Very confident", "Somewhat confident", "Neutral", "Somewhat unsure", "Very unsure"]
-  },
-  {
-    id: "feedback_openness", 
-    question: "How open are you to receiving constructive feedback?",
-    type: "radio",
-    options: ["Extremely open", "Very open", "Somewhat open", "Slightly open", "Not open"]
-  },
-  {
-    id: "growth_mindset",
-    question: "I believe my abilities can be developed through dedication and hard work",
-    type: "radio", 
-    options: ["Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"]
-  },
-  {
-    id: "self_awareness",
-    question: "I have a clear understanding of my strengths and weaknesses",
-    type: "radio",
-    options: ["Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"] 
-  },
-  {
-    id: "goals",
-    question: "What are your top 3 professional development goals?",
-    type: "textarea"
-  }
+const insightQuestions = [
+  { id: "problemsSolving", question: "What kind of problems do you most enjoy solving?", type: "textarea" },
+  { id: "flowState", question: "When do you feel most 'in flow' or lose track of time?", type: "textarea" },
+  { id: "freeDay", question: "If you had a completely free day, what would you instinctively do?", type: "textarea" },
+  { id: "decisionMaking", question: "Do you tend to make decisions more with your head or your gut?", type: "textarea" },
+  { id: "environments", question: "Which environments drain you vs. energize you?", type: "textarea" },
+  { id: "feedbackStyle", question: "When given feedback, do you analyze it or react emotionally?", type: "textarea" },
+  { id: "motivation", question: "Are you more motivated by recognition or by mastery?", type: "textarea" },
+  { id: "roomNoticing", question: "What do you tend to notice first when entering a room?", type: "textarea" },
+  { id: "timeOrientation", question: "Do you focus more on long-term vision or short-term execution?", type: "textarea" },
+  { id: "stressBehavior", question: "When you're under stress, how do you typically behave?", type: "textarea" }
 ];
+
+const personalityQuestions = [
+  { id: "energyFromPeople", question: "I gain energy from being around people.", type: "radio" },
+  { id: "preferInstructions", question: "I prefer clear instructions to open-ended tasks.", type: "radio" },
+  { id: "factsOverIntuition", question: "I rely more on facts than intuition when making decisions.", type: "radio" },
+  { id: "brainstormingVsRoutines", question: "I enjoy brainstorming more than following routines.", type: "radio" },
+  { id: "openOptions", question: "I like to keep my options open rather than making firm plans.", type: "radio" },
+  { id: "noticeDetails", question: "I often notice details others miss.", type: "radio" },
+  { id: "quietTimeRecharge", question: "I need quiet time to recharge after social events.", type: "radio" },
+  { id: "structuredEnvironments", question: "I thrive in structured environments with clear expectations.", type: "radio" },
+  { id: "empathizeEasily", question: "I find it easy to empathize with others.", type: "radio" },
+  { id: "logicalOverEmotional", question: "I prefer to work through problems logically rather than emotionally.", type: "radio" }
+];
+
+const scaleOptions = ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"];
 
 // Form schemas
 const userSchema = z.object({
@@ -78,13 +75,7 @@ const focusAreasSchema = z.object({
   focusAreas: z.array(z.string()).min(1, "Please select at least one focus area")
 });
 
-const selfAssessmentSchema = z.object({
-  confidence_level: z.string(),
-  feedback_openness: z.string(), 
-  growth_mindset: z.string(),
-  self_awareness: z.string(),
-  goals: z.string().optional()
-});
+
 
 const mentorSchema = z.object({
   aiMentor: z.string().min(1, "Please select an AI mentor")
@@ -119,15 +110,33 @@ export default function Onboarding() {
     defaultValues: { focusAreas: [] }
   });
 
-  // Step 3: Self-assessment form
+  // Step 2: Self-assessment form
   const assessmentForm = useForm({
     resolver: zodResolver(selfAssessmentSchema),
     defaultValues: {
-      confidence_level: "",
-      feedback_openness: "",
-      growth_mindset: "",
-      self_awareness: "",
-      goals: ""
+      // Insight-Generating Questions
+      problemsSolving: "",
+      flowState: "",
+      freeDay: "",
+      decisionMaking: "",
+      environments: "",
+      feedbackStyle: "",
+      motivation: "",
+      roomNoticing: "",
+      timeOrientation: "",
+      stressBehavior: "",
+      
+      // Personality Type Questions
+      energyFromPeople: "",
+      preferInstructions: "",
+      factsOverIntuition: "",
+      brainstormingVsRoutines: "",
+      openOptions: "",
+      noticeDetails: "",
+      quietTimeRecharge: "",
+      structuredEnvironments: "",
+      empathizeEasily: "",
+      logicalOverEmotional: "",
     }
   });
 
@@ -449,52 +458,82 @@ export default function Onboarding() {
           {currentStep === 3 && (
             <>
               <CardHeader>
-                <CardTitle>Quick Self-Assessment</CardTitle>
+                <CardTitle>Self-Assessment: Understanding You</CardTitle>
+                <p className="text-neutral-500">These questions help our AI mentor understand your personality and work style</p>
               </CardHeader>
               <CardContent>
                 <Form {...assessmentForm}>
                   <form onSubmit={handleAssessmentSubmit} className="space-y-8">
-                    {selfAssessmentQuestions.map((q) => (
-                      <FormField
-                        key={q.id}
-                        control={assessmentForm.control}
-                        name={q.id as any}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium">
-                              {q.question}
-                            </FormLabel>
-                            <FormControl>
-                              {q.type === "radio" ? (
+                    
+                    {/* Insight Questions Section */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-semibold text-primary">🔍 Insight Questions</h3>
+                      <p className="text-sm text-neutral-600">Reflect on your natural tendencies and preferences</p>
+                      
+                      {insightQuestions.map((q) => (
+                        <FormField
+                          key={q.id}
+                          control={assessmentForm.control}
+                          name={q.id as any}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-base font-medium">
+                                {q.question}
+                              </FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Share your thoughts..."
+                                  {...field}
+                                  rows={2}
+                                  className="resize-none"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Personality Questions Section */}
+                    <div className="space-y-6 border-t pt-8">
+                      <h3 className="text-lg font-semibold text-primary">🧠 Personality Assessment</h3>
+                      <p className="text-sm text-neutral-600">Rate how much you agree with each statement</p>
+                      
+                      {personalityQuestions.map((q) => (
+                        <FormField
+                          key={q.id}
+                          control={assessmentForm.control}
+                          name={q.id as any}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-base font-medium">
+                                {q.question}
+                              </FormLabel>
+                              <FormControl>
                                 <RadioGroup
                                   value={field.value}
                                   onValueChange={field.onChange}
-                                  className="space-y-2"
+                                  className="flex flex-wrap gap-2"
                                 >
-                                  {q.options?.map((option) => (
-                                    <div key={option} className="flex items-center space-x-2">
+                                  {scaleOptions.map((option) => (
+                                    <div key={option} className="flex items-center space-x-2 bg-neutral-50 px-3 py-2 rounded-lg">
                                       <RadioGroupItem value={option} id={`${q.id}-${option}`} />
-                                      <Label htmlFor={`${q.id}-${option}`} className="cursor-pointer">
+                                      <Label htmlFor={`${q.id}-${option}`} className="cursor-pointer text-sm">
                                         {option}
                                       </Label>
                                     </div>
                                   ))}
                                 </RadioGroup>
-                              ) : (
-                                <Textarea
-                                  placeholder="Share your thoughts..."
-                                  {...field}
-                                  rows={3}
-                                />
-                              )}
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
 
-                    <div className="flex justify-between">
+                    <div className="flex justify-between pt-6 border-t">
                       <Button type="button" variant="outline" onClick={goBack}>
                         <ArrowLeft className="mr-2 w-4 h-4" />
                         Back
