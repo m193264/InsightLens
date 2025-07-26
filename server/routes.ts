@@ -88,6 +88,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test email route
+  app.post("/api/test-email", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email required" });
+      }
+      
+      const success = await sendInvitationEmail({
+        id: 999,
+        email,
+        name: "Test User",
+        relationship: "test",
+        token: "test-token",
+        status: "pending",
+        surveyId: 999,
+        sentAt: null,
+        completedAt: null,
+        createdAt: new Date()
+      }, "Test Survey");
+      
+      res.json({ success, message: success ? "Test email sent" : "Failed to send test email" });
+    } catch (error: any) {
+      console.error('Test email error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Invitation routes
   app.post("/api/surveys/:surveyId/invitations", async (req, res) => {
     try {
