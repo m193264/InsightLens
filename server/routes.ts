@@ -92,6 +92,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/surveys/:surveyId/invitations", async (req, res) => {
     try {
       const surveyId = parseInt(req.params.surveyId);
+      console.log(`[invitations] Creating invitations for survey ${surveyId}`);
+      console.log(`[invitations] Request body:`, req.body);
+      
       const invitationsData = z.array(insertInvitationSchema).parse(req.body);
       
       const invitations = [];
@@ -101,10 +104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           surveyId,
         });
         invitations.push(invitation);
+        console.log(`[invitations] Created invitation for ${invitation.email}`);
       }
       
+      console.log(`[invitations] Created ${invitations.length} invitations`);
       res.json(invitations);
     } catch (error: any) {
+      console.error('[invitations] Error creating invitations:', error);
       res.status(400).json({ message: error.message });
     }
   });

@@ -185,14 +185,25 @@ export default function Onboarding() {
   const createInvitationsMutation = useMutation({
     mutationFn: ({ surveyId, contacts }: any) => 
       apiRequest("POST", `/api/surveys/${surveyId}/invitations`, contacts),
-    onSuccess: async () => {
-      // Send invitations immediately
-      await apiRequest("POST", `/api/surveys/${userData.surveyId}/send-invitations`);
-      toast({
-        title: "Success!",
-        description: "Survey created and invitations sent!"
-      });
-      setLocation(`/dashboard/${userData.surveyId}`);
+    onSuccess: async (_, variables) => {
+      // Send invitations immediately using the surveyId from the mutation variables
+      console.log('Invitations created, now sending emails for survey:', variables.surveyId);
+      try {
+        await apiRequest("POST", `/api/surveys/${variables.surveyId}/send-invitations`);
+        toast({
+          title: "Success!",
+          description: "Survey created and invitations sent!"
+        });
+        setLocation(`/dashboard/${variables.surveyId}`);
+      } catch (error) {
+        console.error('Failed to send invitations:', error);
+        toast({
+          title: "Partial Success",
+          description: "Survey created but failed to send invitations. You can send them from the dashboard.",
+          variant: "destructive"
+        });
+        setLocation(`/dashboard/${variables.surveyId}`);
+      }
     },
     onError: () => {
       toast({
@@ -224,6 +235,9 @@ export default function Onboarding() {
   });
 
   const handleContactsSubmit = contactsForm.handleSubmit((data) => {
+    // Store contacts data for later use
+    const contactsData = data.contacts;
+    
     // Create survey first
     const surveyData = {
       userId: userData.userId,
@@ -234,17 +248,17 @@ export default function Onboarding() {
       status: "setup"
     };
 
-    createSurveyMutation.mutate(surveyData);
-    
-    // Then create invitations
-    setTimeout(() => {
-      if (userData.surveyId) {
+    console.log('Creating survey and then invitations...');
+    createSurveyMutation.mutate(surveyData, {
+      onSuccess: (createdSurvey) => {
+        console.log('Survey created with ID:', createdSurvey.id);
+        // Now create invitations with the actual survey ID
         createInvitationsMutation.mutate({
-          surveyId: userData.surveyId,
-          contacts: data.contacts
+          surveyId: createdSurvey.id,
+          contacts: contactsData
         });
       }
-    }, 1000);
+    });
   });
 
   const addContact = () => {
