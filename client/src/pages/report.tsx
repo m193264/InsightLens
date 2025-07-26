@@ -8,7 +8,7 @@ import Footer from "@/components/footer";
 import { Star, Eye, Route, Download, Share, RotateCcw, CheckCircle } from "lucide-react";
 
 const mentorImages: Record<string, string> = {
-  MarcusAI: "https://images.unsplash.com/photo-CTNU0RtE1no?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
+  MarcusAI: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
   MayaAI: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
   SteveAI: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
   KobeAI: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
